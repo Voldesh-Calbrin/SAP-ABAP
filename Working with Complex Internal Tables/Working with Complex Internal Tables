@@ -1,0 +1,101 @@
+
+
+CLASS lcl_connection DEFINITION.
+
+  PUBLIC SECTION.
+    METHODS:
+      constructor
+        IMPORTING
+          i_carrier_id    TYPE /dmo/carrier_id
+          i_connection_id TYPE /dmo/connection_id,
+
+      get_output
+        RETURNING VALUE(r_output) TYPE string_table.
+
+  PRIVATE SECTION.
+
+    "Structure for connection details
+    TYPES:
+      BEGIN OF st_details,
+        DepartureAirport   TYPE /dmo/airport_from_id,
+        DestinationAirport TYPE /dmo/airport_to_id,
+        AirlineName        TYPE /dmo/carrier_name,
+      END OF st_details.
+
+    "Structure for airport buffer
+    TYPES:
+      BEGIN OF st_airport,
+        AirportID TYPE /dmo/airport_id,
+        Name      TYPE /dmo/airport_name,
+      END OF st_airport.
+
+    "Table type for airport buffer
+    TYPES tt_airports TYPE STANDARD TABLE OF st_airport
+                        WITH NON-UNIQUE DEFAULT KEY.
+
+    DATA:
+      carrier_id    TYPE /dmo/carrier_id,
+      connection_id TYPE /dmo/connection_id,
+      details       TYPE st_details.
+
+    "Static airport buffer
+    CLASS-DATA airports TYPE tt_airports.
+
+    CLASS-METHODS class_constructor.
+
+ENDCLASS.
+
+
+
+CLASS lcl_connection IMPLEMENTATION.
+
+  "--------------------------------------------------
+  " Class constructor (runs once automatically)
+  "--------------------------------------------------
+  METHOD class_constructor.
+
+    SELECT FROM /DMO/I_Airport
+      FIELDS AirportID, Name
+      INTO TABLE @airports.
+
+  ENDMETHOD.
+
+
+  "--------------------------------------------------
+  " Instance constructor
+  "--------------------------------------------------
+  METHOD constructor.
+
+    carrier_id    = i_carrier_id.
+    connection_id = i_connection_id.
+
+    SELECT SINGLE
+      FROM /DMO/I_Connection
+      FIELDS DepartureAirport,
+             DestinationAirport,
+             _Airline-Name AS AirlineName
+      WHERE AirlineID    = @i_carrier_id
+        AND ConnectionID = @i_connection_id
+      INTO CORRESPONDING FIELDS OF @details.
+
+  ENDMETHOD.
+
+
+  "--------------------------------------------------
+  " Output Method
+  "--------------------------------------------------
+  METHOD get_output.
+
+    "Read airport details using table expressions
+    DATA(departure)   = airports[ airportid = details-departureairport ].
+    DATA(destination) = airports[ airportid = details-destinationairport ].
+
+    APPEND |--------------------------------| TO r_output.
+    APPEND |Carrier:     { carrier_id } { details-airlinename }| TO r_output.
+    APPEND |Connection:  { connection_id }| TO r_output.
+    APPEND |Departure:   { details-departureairport } { departure-name }| TO r_output.
+    APPEND |Destination: { details-destinationairport } { destination-name }| TO r_output.
+
+  ENDMETHOD.
+
+ENDCLASS.
