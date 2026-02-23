@@ -1,0 +1,47 @@
+// Behavior Projection for Z##FLIGHT
+
+// Comment out standard operations create and delete
+//  use create;
+use update;
+//  use delete;
+
+// Make PlaneTypeID read-only in the service
+field ( readonly ) PlaneTypeID;
+
+// Metadata Extension for ZC_##FLIGHT
+
+// Hide administrative fields from the UI
+@UI.hidden: true
+LocalCreatedBy;
+
+@UI.hidden: true
+LocalCreatedAt;
+
+@UI.hidden: true
+LocalLastChangedBy;
+
+@UI.hidden: true
+LocalLastChangedAt;
+
+@UI.hidden: true
+LastChangedAt;
+
+// Configure Object Page field order and identification
+@UI.identification: [ { position: 30 } ]
+@UI.lineItem: [ { position: 30 } ]
+FlightDate;
+
+@UI.identification: [ { position: 35 } ]
+@UI.lineItem: [ { position: 50 } ]
+PlaneTypeID;
+
+@UI.identification: [ { position: 40 } ]
+@UI.lineItem: [ { position: 40 } ]
+Price;
+
+// Only CarrierID and ConnectionID are selection fields
+@UI.selectionField: [ { position: 10 } ]
+CarrierID;
+
+@UI.selectionField: [ { position: 20 } ]
+ConnectionID;
