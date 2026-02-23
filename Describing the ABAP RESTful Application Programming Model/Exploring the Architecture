@@ -1,0 +1,10 @@
+METHOD if_oo_adt_classrun~main.
+
+  CONSTANTS table_name TYPE string VALUE 'Z##FLIGHT'.
+
+  DATA(lo_copy) = NEW /lrn/cl_s4d400_apt_copy( ).
+  lo_copy->copy_data( table_name ).
+
+ENDMETHOD.
+
+----------------------------------------------------------------------------------------------------------------
