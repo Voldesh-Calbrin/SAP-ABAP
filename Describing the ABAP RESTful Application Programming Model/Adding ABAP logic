@@ -1,0 +1,36 @@
+METHOD validatePrice.
+
+  " Work areas for failed and reported rows
+  DATA failed_record   LIKE LINE OF failed-flight.
+  DATA reported_record LIKE LINE OF reported-flight.
+
+  " Read transactional buffer for changed records
+  READ ENTITIES OF ZR_##Flight IN LOCAL MODE
+    ENTITY Flight
+      FIELDS ( Price )
+      WITH CORRESPONDING #( keys )
+      RESULT DATA(flights).
+
+  " Loop over all flight records
+  LOOP AT flights INTO DATA(flight).
+
+    " Check if price is invalid
+    IF flight-price <= 0.
+
+      " Add to failed-flight
+      failed_record-%tky = flight-%tky.
+      APPEND failed_record TO failed-flight.
+
+      " Add to reported-flight with error message
+      reported_record-%tky = flight-%tky.
+      reported_record-%msg = new_message(
+                        id       = '/LRN/S4D400'
+                        number   = '101'
+                        severity = ms-error ).
+      APPEND reported_record TO reported-flight.
+
+    ENDIF.
+
+  ENDLOOP.
+
+ENDMETHOD.
