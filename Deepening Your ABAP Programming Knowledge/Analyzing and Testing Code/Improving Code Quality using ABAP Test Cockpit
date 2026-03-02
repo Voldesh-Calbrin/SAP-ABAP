@@ -1,0 +1,77 @@
+CLASS zcl_##_solution DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    INTERFACES if_oo_adt_classrun.
+
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_flight,
+        carrier_id   TYPE /dmo/carrier_id,
+        connection_id TYPE /dmo/connection_id,
+        seats_max    TYPE i,
+        seats_occ    TYPE i,
+        seats_free   TYPE i,
+      END OF ty_flight.
+
+ENDCLASS.
+
+
+
+CLASS zcl_##_solution IMPLEMENTATION.
+
+  METHOD if_oo_adt_classrun~main.
+
+    DATA flights TYPE STANDARD TABLE OF ty_flight.
+    DATA flight  TYPE ty_flight.
+    DATA output  TYPE STANDARD TABLE OF string.
+
+    DATA currency_code TYPE /dmo/currency_code ##NEEDED.
+
+* --------------------------------------------------------------------
+* Example Data (Simulated)
+* --------------------------------------------------------------------
+
+    flight-carrier_id    = 'LH'.
+    flight-connection_id = '0400'.
+    flight-seats_max     = 200.
+    flight-seats_occ     = 150.
+    flight-seats_free    = flight-seats_max - flight-seats_occ.
+    APPEND flight TO flights.
+
+    flight-carrier_id    = 'AA'.
+    flight-connection_id = '0017'.
+    flight-seats_max     = 180.
+    flight-seats_occ     = 120.
+    flight-seats_free    = flight-seats_max - flight-seats_occ.
+    APPEND flight TO flights.
+
+* --------------------------------------------------------------------
+* Output Section
+* --------------------------------------------------------------------
+
+    LOOP AT flights INTO flight.
+
+      APPEND |Carrier: { flight-carrier_id }| TO output.
+      APPEND |Connection: { flight-connection_id }| TO output.
+      APPEND |Maximum Seats: { flight-seats_max }| TO output.
+
+* ✅ FIXED: Now correctly using SEATS_OCC instead of SEATS_MAX
+      APPEND |Occupied Seats: { flight-seats_occ }| TO output.
+
+      APPEND |Free Seats: { flight-seats_free }| TO output.
+      APPEND |-----------------------------| TO output.
+
+    ENDLOOP.
+
+* Console Output
+    LOOP AT output INTO DATA(line).
+      out->write( line ).
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
