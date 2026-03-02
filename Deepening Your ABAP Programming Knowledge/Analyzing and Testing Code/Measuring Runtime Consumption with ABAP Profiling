@@ -1,0 +1,84 @@
+CLASS lcl_passenger_flight DEFINITION.
+
+  PUBLIC SECTION.
+    METHODS:
+      constructor
+        IMPORTING
+          i_carrier_id    TYPE /lrn/passflight-carrier_id
+          i_connection_id TYPE /lrn/passflight-connection_id
+          i_flight_date   TYPE /lrn/passflight-flight_date,
+
+      get_flights_by_carrier
+        IMPORTING
+          i_carrier_id TYPE /lrn/passflight-carrier_id.
+
+  PRIVATE SECTION.
+
+    TYPES: BEGIN OF st_flights_buffer,
+             carrier_id     TYPE /lrn/passflight-carrier_id,
+             connection_id  TYPE /lrn/passflight-connection_id,
+             flight_date    TYPE /lrn/passflight-flight_date,
+             plane_type_id  TYPE /lrn/passflight-plane_type_id,
+             seats_max      TYPE /lrn/passflight-seats_max,
+             seats_occupied TYPE /lrn/passflight-seats_occupied,
+             price          TYPE /lrn/passflight-price,
+             currency_code  TYPE /lrn/passflight-currency_code,
+           END OF st_flights_buffer.
+
+    CLASS-DATA flights_buffer TYPE TABLE OF st_flights_buffer.
+
+    DATA:
+      carrier_id     TYPE /lrn/passflight-carrier_id,
+      connection_id  TYPE /lrn/passflight-connection_id,
+      flight_date    TYPE /lrn/passflight-flight_date,
+      plane_type_id  TYPE /lrn/passflight-plane_type_id,
+      seats_max      TYPE /lrn/passflight-seats_max,
+      seats_occupied TYPE /lrn/passflight-seats_occupied,
+      price          TYPE /lrn/passflight-price,
+      currency_code  TYPE /lrn/passflight-currency_code.
+
+ENDCLASS.
+
+METHOD constructor.
+
+  carrier_id    = i_carrier_id.
+  connection_id = i_connection_id.
+  flight_date   = i_flight_date.
+
+  DATA flight_raw TYPE st_flights_buffer.
+
+  TRY.
+
+      flight_raw =
+        flights_buffer[
+          carrier_id    = i_carrier_id
+          connection_id = i_connection_id
+          flight_date   = i_flight_date ].
+
+    CATCH cx_sy_itab_line_not_found.
+
+      SELECT SINGLE
+        FROM /lrn/passflight
+        FIELDS plane_type_id,
+               seats_max,
+               seats_occupied,
+               price,
+               currency_code
+        WHERE carrier_id    = @i_carrier_id
+          AND connection_id = @i_connection_id
+          AND flight_date   = @i_flight_date
+        INTO CORRESPONDING FIELDS OF @flight_raw.
+
+  ENDTRY.
+
+  IF flight_raw IS NOT INITIAL.
+
+    plane_type_id  = flight_raw-plane_type_id.
+    seats_max      = flight_raw-seats_max.
+    seats_occupied = flight_raw-seats_occupied.
+    price          = flight_raw-price.
+    currency_code  = flight_raw-currency_code.
+
+  ENDIF.
+
+ENDMETHOD.
