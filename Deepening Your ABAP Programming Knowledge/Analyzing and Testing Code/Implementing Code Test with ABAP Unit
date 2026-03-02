@@ -1,0 +1,161 @@
+CLASS zcl_##_solution DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES if_oo_adt_classrun.
+
+  PRIVATE SECTION.
+
+    CLASS lcl_carrier DEFINITION.
+      PUBLIC SECTION.
+        METHODS:
+          constructor
+            IMPORTING i_carrier_id TYPE /dmo/carrier_id
+            RAISING   cx_abap_invalid_value,
+
+          find_cargo_flight
+            IMPORTING
+              i_airport_from_id TYPE /dmo/airport_id
+              i_airport_to_id   TYPE /dmo/airport_id
+              i_from_date       TYPE /dmo/flight_date
+              i_cargo           TYPE i
+            EXPORTING
+              e_flight     TYPE REF TO /lrn/cargoflight
+              e_days_later TYPE i.
+      PRIVATE SECTION.
+        DATA carrier_id TYPE /dmo/carrier_id.
+    ENDCLASS.
+
+ENDCLASS.
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+CLASS zcl_##_solution IMPLEMENTATION.
+
+  METHOD if_oo_adt_classrun~main.
+    out->write( 'Console execution...' ).
+  ENDMETHOD.
+
+
+  METHOD lcl_carrier~constructor.
+    IF i_carrier_id IS INITIAL.
+      RAISE EXCEPTION TYPE cx_abap_invalid_value.
+    ENDIF.
+    carrier_id = i_carrier_id.
+  ENDMETHOD.
+
+
+  METHOD lcl_carrier~find_cargo_flight.
+
+    SELECT SINGLE *
+      FROM /lrn/cargoflight
+      WHERE carrier_id      = @carrier_id
+        AND airport_from_id = @i_airport_from_id
+        AND airport_to_id   = @i_airport_to_id
+        AND flight_date     >= @i_from_date
+      INTO @DATA(ls_flight).
+
+    IF sy-subrc = 0.
+
+      e_flight = NEW /lrn/cargoflight( ).
+      e_flight->* = ls_flight.
+
+* Old (wrong):
+* DATA(days_later) = i_from_date - ls_flight-flight_date.
+
+* FIXED:
+      DATA(days_later) = ls_flight-flight_date - i_from_date.
+
+      e_days_later = days_later.
+
+    ENDIF.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS ltcl_find_flights IMPLEMENTATION.
+
+  METHOD class_setup.
+
+    SELECT SINGLE
+      carrier_id,
+      connection_id,
+      flight_date,
+      airport_from_id,
+      airport_to_id
+      FROM /lrn/cargoflight
+      INTO CORRESPONDING FIELDS OF @some_flight_data.
+
+    IF sy-subrc <> 0.
+      cl_abap_unit_assert=>fail(
+        'No data in table /LRN/CARGOFLIGHT' ).
+    ENDIF.
+
+    TRY.
+        the_carrier = NEW zcl_##_solution=>lcl_carrier(
+                        i_carrier_id = some_flight_data-carrier_id ).
+      CATCH cx_abap_invalid_value.
+        cl_abap_unit_assert=>fail(
+          'Unable to instantiate lcl_carrier' ).
+    ENDTRY.
+
+  ENDMETHOD.
+
+CLASS ltcl_find_flights IMPLEMENTATION.
+
+  METHOD class_setup.
+
+    SELECT SINGLE
+      carrier_id,
+      connection_id,
+      flight_date,
+      airport_from_id,
+      airport_to_id
+      FROM /lrn/cargoflight
+      INTO CORRESPONDING FIELDS OF @some_flight_data.
+
+    IF sy-subrc <> 0.
+      cl_abap_unit_assert=>fail(
+        'No data in table /LRN/CARGOFLIGHT' ).
+    ENDIF.
+
+    TRY.
+        the_carrier = NEW zcl_##_solution=>lcl_carrier(
+                        i_carrier_id = some_flight_data-carrier_id ).
+      CATCH cx_abap_invalid_value.
+        cl_abap_unit_assert=>fail(
+          'Unable to instantiate lcl_carrier' ).
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD test_find_cargo_flight.
+
+    the_carrier->find_cargo_flight(
+      EXPORTING
+        i_airport_from_id = some_flight_data-airport_from_id
+        i_airport_to_id   = some_flight_data-airport_to_id
+        i_from_date       = some_flight_data-flight_date
+        i_cargo           = 1
+      IMPORTING
+        e_flight          = DATA(flight)
+        e_days_later      = DATA(days_later)
+    ).
+
+    cl_abap_unit_assert=>assert_bound(
+      act = flight
+      msg = 'Method find_cargo_flight does not return a result'
+    ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = days_later
+      exp = 0
+      msg = 'Method find_cargo_flight returns wrong result'
+    ).
+
+  ENDMETHOD.
+
+ENDCLASS.
